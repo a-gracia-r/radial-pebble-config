@@ -140,23 +140,44 @@
         }
 
         document.addEventListener('DOMContentLoaded', function() {
-            var options = JSON.parse(decodeURIComponent(getQueryParam('return_to')) || '{}') || {};
-            
-            // Cargar valores guardados si existen
-            if (options.apiKey) {
-                document.getElementById('apiKey').value = options.apiKey;
-            }
-            if (options.location) {
-                document.getElementById('location').value = options.location;
+            try {
+                var returnTo = getQueryParam('return_to');
+                if (returnTo) {
+                    var options = JSON.parse(decodeURIComponent(returnTo));
+                    
+                    // Cargar valores guardados si existen
+                    if (options.apiKey) {
+                        document.getElementById('apiKey').value = options.apiKey;
+                    }
+                    if (options.location) {
+                        document.getElementById('location').value = options.location;
+                    }
+                }
+            } catch (e) {
+                console.log('No previous config found');
             }
         });
 
         document.getElementById('configuration').addEventListener('submit', function(e) {
             e.preventDefault();
             
+            var apiKey = document.getElementById('apiKey').value.trim();
+            var location = document.getElementById('location').value.trim();
+            
+            // Validar que al menos apiKey esté presente
+            if (!apiKey) {
+                alert('Por favor ingresa tu API Key de OpenWeather');
+                return;
+            }
+            
+            // Si no hay ubicación, usar una predeterminada
+            if (!location) {
+                location = 'Madrid';
+            }
+            
             var configData = {
-                'apiKey': document.getElementById('apiKey').value,
-                'location': document.getElementById('location').value
+                'apiKey': apiKey,
+                'location': location
             };
             
             // Guardar y cerrar
