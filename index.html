@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset='utf-8'>
+    <title>Radial Watchface Configuration</title>
+    <meta name='viewport' content='width=device-width, initial-scale=1'>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .container {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            padding: 30px;
+            max-width: 400px;
+            width: 100%;
+        }
+        h1 {
+            color: #333;
+            margin-top: 0;
+            margin-bottom: 10px;
+            font-size: 24px;
+        }
+        .subtitle {
+            color: #666;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            color: #333;
+            font-weight: 600;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+        input {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 5px;
+            font-size: 14px;
+            box-sizing: border-box;
+            transition: border-color 0.3s;
+        }
+        input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        .help-text {
+            font-size: 12px;
+            color: #999;
+            margin-top: 5px;
+        }
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 25px;
+        }
+        button {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 5px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .save-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .save-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        .cancel-btn {
+            background: #f0f0f0;
+            color: #333;
+        }
+        .cancel-btn:hover {
+            background: #e0e0e0;
+        }
+        .info-box {
+            background: #f0f7ff;
+            border-left: 4px solid #667eea;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+            font-size: 13px;
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <div class='container'>
+        <h1>Radial Watchface</h1>
+        <p class='subtitle'>Configurar OpenWeather API</p>
+        
+        <div class='info-box'>
+            <strong>📍 Configuración de Clima</strong><br>
+            Ingresa tu API key de OpenWeather para obtener datos de temperatura en tiempo real.
+        </div>
+        
+        <form id='configuration'>
+            <div class='form-group'>
+                <label for='apiKey'>API Key de OpenWeather</label>
+                <input type='text' id='apiKey' name='apiKey' placeholder='Ingresa tu API key aquí'>
+                <div class='help-text'>Obtén una gratis en <a href='https://openweathermap.org/api' target='_blank' style='color: #667eea;'>openweathermap.org</a></div>
+            </div>
+            
+            <div class='form-group'>
+                <label for='location'>Ubicación (opcional)</label>
+                <input type='text' id='location' name='location' placeholder='ej: Madrid, Barcelona'>
+                <div class='help-text'>Deja en blanco para usar tu ubicación actual</div>
+            </div>
+            
+            <div class='button-group'>
+                <button type='submit' class='save-btn'>💾 Guardar</button>
+                <button type='button' class='cancel-btn' onclick='cancelConfig()'>✕ Cancelar</button>
+            </div>
+        </form>
+    </div>
+
+    <script>
+        function getQueryParam(param) {
+            var searchParams = new URLSearchParams(window.location.search);
+            return searchParams.get(param);
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            var options = JSON.parse(decodeURIComponent(getQueryParam('return_to')) || '{}') || {};
+            
+            // Cargar valores guardados si existen
+            if (options.apiKey) {
+                document.getElementById('apiKey').value = options.apiKey;
+            }
+            if (options.location) {
+                document.getElementById('location').value = options.location;
+            }
+        });
+
+        document.getElementById('configuration').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            var configData = {
+                'apiKey': document.getElementById('apiKey').value,
+                'location': document.getElementById('location').value
+            };
+            
+            // Guardar y cerrar
+            window.location = 'pebblejs://close#' + encodeURIComponent(JSON.stringify(configData));
+        });
+
+        function cancelConfig() {
+            window.location = 'pebblejs://close#' + encodeURIComponent(JSON.stringify({}));
+        }
+    </script>
+</body>
+</html>
