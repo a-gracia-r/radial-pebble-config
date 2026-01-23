@@ -426,7 +426,7 @@
             
             // Si no hay ubicación, usar una predeterminada
             if (!location) {
-                location = 'Zaragoza';
+                location = 'Madrid';
             }
             
             var configData = {
@@ -436,10 +436,19 @@
             
             // Solo incluir opciones de color si el reloj las soporta
             if (supportsColor()) {
-                configData.hourColor = document.getElementById('hourColor').value;
-                configData.minuteColor = document.getElementById('minuteColor').value;
+                var hourColorHex = document.getElementById('hourColor').value;
+                var minuteColorHex = document.getElementById('minuteColor').value;
+                
+                // Convertir los colores hexadecimales a números
+                configData.hourColor = parseInt(hourColorHex, 16);
+                configData.minuteColor = parseInt(minuteColorHex, 16);
                 configData.visibleHands = document.getElementById('visibleHands').checked;
+                
+                console.log('Hour color hex: ' + hourColorHex + ' -> int: ' + configData.hourColor);
+                console.log('Minute color hex: ' + minuteColorHex + ' -> int: ' + configData.minuteColor);
             }
+            
+            console.log('Sending config: ' + JSON.stringify(configData));
             
             // Guardar y cerrar
             window.location = 'pebblejs://close#' + encodeURIComponent(JSON.stringify(configData));
