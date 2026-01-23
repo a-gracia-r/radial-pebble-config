@@ -57,6 +57,19 @@
             outline: none;
             border-color: #667eea;
         }
+        select {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 5px;
+            font-size: 14px;
+            box-sizing: border-box;
+            transition: border-color 0.3s;
+        }
+        select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
         .help-text {
             font-size: 12px;
             color: #999;
@@ -101,6 +114,40 @@
             font-size: 13px;
             color: #333;
         }
+        .color-picker {
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            gap: 5px;
+            margin-top: 10px;
+        }
+        .color-option {
+            width: 100%;
+            aspect-ratio: 1;
+            border: 2px solid #e0e0e0;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .color-option:hover {
+            transform: scale(1.1);
+            border-color: #667eea;
+        }
+        .color-option.selected {
+            border: 3px solid #667eea;
+            box-shadow: 0 0 10px rgba(102, 126, 234, 0.5);
+        }
+        .color-preview {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .color-preview-box {
+            width: 40px;
+            height: 40px;
+            border: 2px solid #e0e0e0;
+            border-radius: 5px;
+        }
     </style>
 </head>
 <body>
@@ -126,6 +173,42 @@
                 <div class='help-text'>Deja en blanco para usar tu ubicación actual</div>
             </div>
             
+            <!-- Sección de colores: solo visible en relojes con pantalla a color -->
+            <div id='colorSection'>
+                <div class='info-box' style='margin-top: 25px;'>
+                    <strong>🎨 Personalización de Colores</strong><br>
+                    Personaliza los colores del arco de horas y minutos.
+                </div>
+                
+                <div class='form-group'>
+                    <label for='hourColor'>Color del arco de horas</label>
+                    <div class='color-preview'>
+                        <div id='hourColorPreview' class='color-preview-box' style='background-color: #FF0000;'></div>
+                        <span id='hourColorName'>Rojo</span>
+                    </div>
+                    <div id='hourColorPicker' class='color-picker'></div>
+                    <input type='hidden' id='hourColor' name='hourColor' value='0xFF0000'>
+                </div>
+                
+                <div class='form-group'>
+                    <label for='minuteColor'>Color del arco de minutos</label>
+                    <div class='color-preview'>
+                        <div id='minuteColorPreview' class='color-preview-box' style='background-color: #00FFFF;'></div>
+                        <span id='minuteColorName'>Cian</span>
+                    </div>
+                    <div id='minuteColorPicker' class='color-picker'></div>
+                    <input type='hidden' id='minuteColor' name='minuteColor' value='0x00FFFF'>
+                </div>
+                
+                <div class='form-group'>
+                    <label style='display: flex; align-items: center; cursor: pointer;'>
+                        <input type='checkbox' id='visibleHands' name='visibleHands' style='width: auto; margin-right: 10px;'>
+                        Manillas visibles (negras)
+                    </label>
+                    <div class='help-text'>Si se desactiva, las manillas serán del mismo color que su arco</div>
+                </div>
+            </div>
+            
             <div class='button-group'>
                 <button type='submit' class='save-btn'>💾 Guardar</button>
                 <button type='button' class='cancel-btn' onclick='cancelConfig()'>✕ Cancelar</button>
@@ -134,12 +217,136 @@
     </div>
 
     <script>
+        // Paleta completa de 64 colores de Pebble (formato: hex, nombre)
+        var pebbleColors = [
+            {hex: '0x000000', css: '#000000', name: 'Negro'},
+            {hex: '0x000055', css: '#000055', name: 'Azul Oxford'},
+            {hex: '0x0000AA', css: '#0000AA', name: 'Azul Duke'},
+            {hex: '0x0000FF', css: '#0000FF', name: 'Azul'},
+            {hex: '0x005500', css: '#005500', name: 'Verde Oscuro'},
+            {hex: '0x005555', css: '#005555', name: 'Verde Azulado Oscuro'},
+            {hex: '0x0055AA', css: '#0055AA', name: 'Azul Cobalto'},
+            {hex: '0x0055FF', css: '#0055FF', name: 'Azul Vívido'},
+            {hex: '0x00AA00', css: '#00AA00', name: 'Verde'},
+            {hex: '0x00AA55', css: '#00AA55', name: 'Verde Primavera'},
+            {hex: '0x00AAAA', css: '#00AAAA', name: 'Cian'},
+            {hex: '0x00AAFF', css: '#00AAFF', name: 'Azul Celeste'},
+            {hex: '0x00FF00', css: '#00FF00', name: 'Verde Brillante'},
+            {hex: '0x00FF55', css: '#00FF55', name: 'Verde Lima'},
+            {hex: '0x00FFAA', css: '#00FFAA', name: 'Menta'},
+            {hex: '0x00FFFF', css: '#00FFFF', name: 'Cian Brillante'},
+            {hex: '0x550000', css: '#550000', name: 'Rojo Oscuro'},
+            {hex: '0x550055', css: '#550055', name: 'Morado Oscuro'},
+            {hex: '0x5500AA', css: '#5500AA', name: 'Índigo'},
+            {hex: '0x5500FF', css: '#5500FF', name: 'Púrpura Eléctrico'},
+            {hex: '0x555500', css: '#555500', name: 'Verde Militar'},
+            {hex: '0x555555', css: '#555555', name: 'Gris'},
+            {hex: '0x5555AA', css: '#5555AA', name: 'Azul Grisáceo'},
+            {hex: '0x5555FF', css: '#5555FF', name: 'Azul Lavanda'},
+            {hex: '0x55AA00', css: '#55AA00', name: 'Verde Musgo'},
+            {hex: '0x55AA55', css: '#55AA55', name: 'Verde Césped'},
+            {hex: '0x55AAAA', css: '#55AAAA', name: 'Turquesa'},
+            {hex: '0x55AAFF', css: '#55AAFF', name: 'Azul Picton'},
+            {hex: '0x55FF00', css: '#55FF00', name: 'Verde Chartreuse'},
+            {hex: '0x55FF55', css: '#55FF55', name: 'Verde Screamin'},
+            {hex: '0x55FFAA', css: '#55FFAA', name: 'Aguamarina'},
+            {hex: '0x55FFFF', css: '#55FFFF', name: 'Azul Eléctrico'},
+            {hex: '0xAA0000', css: '#AA0000', name: 'Rojo'},
+            {hex: '0xAA0055', css: '#AA0055', name: 'Rosa Folly'},
+            {hex: '0xAA00AA', css: '#AA00AA', name: 'Magenta'},
+            {hex: '0xAA00FF', css: '#AA00FF', name: 'Violeta Púrpura'},
+            {hex: '0xAA5500', css: '#AA5500', name: 'Naranja Anaranjado'},
+            {hex: '0xAA5555', css: '#AA5555', name: 'Rojo Windsortan'},
+            {hex: '0xAA55AA', css: '#AA55AA', name: 'Púrpura'},
+            {hex: '0xAA55FF', css: '#AA55FF', name: 'Lavanda Púrpura'},
+            {hex: '0xAAAA00', css: '#AAAA00', name: 'Amarillo Bronce'},
+            {hex: '0xAAAA55', css: '#AAAA55', name: 'Verde Bronce'},
+            {hex: '0xAAAAAA', css: '#AAAAAA', name: 'Gris Claro'},
+            {hex: '0xAAAAFF', css: '#AAAAF', name: 'Azul Muy Claro'},
+            {hex: '0xAAFF00', css: '#AAFF00', name: 'Amarillo Verde'},
+            {hex: '0xAAFF55', css: '#AAFF55', name: 'Verde Amarillento'},
+            {hex: '0xAAFFAA', css: '#AAFFAA', name: 'Verde Menta'},
+            {hex: '0xAAFFFF', css: '#AAFFFF', name: 'Celeste'},
+            {hex: '0xFF0000', css: '#FF0000', name: 'Rojo Brillante'},
+            {hex: '0xFF0055', css: '#FF0055', name: 'Rosa Shocking'},
+            {hex: '0xFF00AA', css: '#FF00AA', name: 'Rosa Magenta'},
+            {hex: '0xFF00FF', css: '#FF00FF', name: 'Magenta Brillante'},
+            {hex: '0xFF5500', css: '#FF5500', name: 'Naranja'},
+            {hex: '0xFF5555', css: '#FF5555', name: 'Salmón'},
+            {hex: '0xFF55AA', css: '#FF55AA', name: 'Rosa'},
+            {hex: '0xFF55FF', css: '#FF55FF', name: 'Violeta Brillante'},
+            {hex: '0xFFAA00', css: '#FFAA00', name: 'Amarillo Naranja'},
+            {hex: '0xFFAA55', css: '#FFAA55', name: 'Melocotón'},
+            {hex: '0xFFAAAA', css: '#FFAAAA', name: 'Rosa Claro'},
+            {hex: '0xFFAAFF', css: '#FFAAFF', name: 'Lavanda Rosa'},
+            {hex: '0xFFFF00', css: '#FFFF00', name: 'Amarillo'},
+            {hex: '0xFFFF55', css: '#FFFF55', name: 'Pastel Amarillo'},
+            {hex: '0xFFFFAA', css: '#FFFFAA', name: 'Amarillo Pálido'},
+            {hex: '0xFFFFFF', css: '#FFFFFF', name: 'Blanco'}
+        ];
+
         function getQueryParam(param) {
             var searchParams = new URLSearchParams(window.location.search);
             return searchParams.get(param);
         }
 
+        function supportsColor() {
+            var platform = getQueryParam('platform');
+            var colorPlatforms = ['basalt', 'chalk', 'diorite', 'emery'];
+            if (!platform) {
+                return true;
+            }
+            return colorPlatforms.indexOf(platform) !== -1;
+        }
+
+        function createColorPicker(pickerId, inputId, previewId, nameId) {
+            var picker = document.getElementById(pickerId);
+            var input = document.getElementById(inputId);
+            var preview = document.getElementById(previewId);
+            var nameSpan = document.getElementById(nameId);
+            
+            pebbleColors.forEach(function(color) {
+                var colorDiv = document.createElement('div');
+                colorDiv.className = 'color-option';
+                colorDiv.style.backgroundColor = color.css;
+                colorDiv.title = color.name;
+                
+                if (color.hex === input.value) {
+                    colorDiv.classList.add('selected');
+                }
+                
+                colorDiv.onclick = function() {
+                    // Quitar selección previa
+                    picker.querySelectorAll('.color-option').forEach(function(el) {
+                        el.classList.remove('selected');
+                    });
+                    
+                    // Marcar como seleccionado
+                    colorDiv.classList.add('selected');
+                    
+                    // Actualizar valores
+                    input.value = color.hex;
+                    preview.style.backgroundColor = color.css;
+                    nameSpan.textContent = color.name;
+                };
+                
+                picker.appendChild(colorDiv);
+            });
+        }
+
         document.addEventListener('DOMContentLoaded', function() {
+            // Ocultar sección de colores si el reloj no soporta color
+            if (!supportsColor()) {
+                var colorSection = document.getElementById('colorSection');
+                if (colorSection) {
+                    colorSection.style.display = 'none';
+                }
+            } else {
+                // Crear selectores de color solo si soporta color
+                createColorPicker('hourColorPicker', 'hourColor', 'hourColorPreview', 'hourColorName');
+                createColorPicker('minuteColorPicker', 'minuteColor', 'minuteColorPreview', 'minuteColorName');
+            }
+            
             try {
                 var returnTo = getQueryParam('return_to');
                 if (returnTo) {
@@ -152,9 +359,56 @@
                     if (options.location) {
                         document.getElementById('location').value = options.location;
                     }
+                    if (options.hourColor && supportsColor()) {
+                        document.getElementById('hourColor').value = options.hourColor;
+                        // Actualizar preview
+                        var hourColorObj = pebbleColors.find(function(c) { return c.hex === options.hourColor; });
+                        if (hourColorObj) {
+                            document.getElementById('hourColorPreview').style.backgroundColor = hourColorObj.css;
+                            document.getElementById('hourColorName').textContent = hourColorObj.name;
+                            // Marcar como seleccionado en el picker
+                            var hourPicker = document.getElementById('hourColorPicker');
+                            var colorDivs = hourPicker.querySelectorAll('.color-option');
+                            colorDivs.forEach(function(div, idx) {
+                                if (pebbleColors[idx].hex === options.hourColor) {
+                                    div.classList.add('selected');
+                                }
+                            });
+                        }
+                    }
+                    if (options.minuteColor && supportsColor()) {
+                        document.getElementById('minuteColor').value = options.minuteColor;
+                        // Actualizar preview
+                        var minuteColorObj = pebbleColors.find(function(c) { return c.hex === options.minuteColor; });
+                        if (minuteColorObj) {
+                            document.getElementById('minuteColorPreview').style.backgroundColor = minuteColorObj.css;
+                            document.getElementById('minuteColorName').textContent = minuteColorObj.name;
+                            // Marcar como seleccionado en el picker
+                            var minutePicker = document.getElementById('minuteColorPicker');
+                            var colorDivs = minutePicker.querySelectorAll('.color-option');
+                            colorDivs.forEach(function(div, idx) {
+                                if (pebbleColors[idx].hex === options.minuteColor) {
+                                    div.classList.add('selected');
+                                }
+                            });
+                        }
+                    }
+                    if (options.visibleHands !== undefined && supportsColor()) {
+                        document.getElementById('visibleHands').checked = options.visibleHands;
+                    }
                 }
             } catch (e) {
                 console.log('No previous config found');
+            }
+            
+            // Valores por defecto solo si soporta color
+            if (supportsColor()) {
+                if (!document.getElementById('hourColor').value) {
+                    document.getElementById('hourColor').value = '0xFF0000'; // Rojo por defecto
+                }
+                if (!document.getElementById('minuteColor').value) {
+                    document.getElementById('minuteColor').value = '0x00FFFF'; // Cian por defecto
+                }
             }
         });
 
@@ -172,13 +426,20 @@
             
             // Si no hay ubicación, usar una predeterminada
             if (!location) {
-                location = 'Madrid';
+                location = 'Zaragoza';
             }
             
             var configData = {
                 'apiKey': apiKey,
                 'location': location
             };
+            
+            // Solo incluir opciones de color si el reloj las soporta
+            if (supportsColor()) {
+                configData.hourColor = document.getElementById('hourColor').value;
+                configData.minuteColor = document.getElementById('minuteColor').value;
+                configData.visibleHands = document.getElementById('visibleHands').checked;
+            }
             
             // Guardar y cerrar
             window.location = 'pebblejs://close#' + encodeURIComponent(JSON.stringify(configData));
